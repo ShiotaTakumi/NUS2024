@@ -38,7 +38,6 @@
 *.app
 *.dot
 *.png
-*.txt
 
 # Ignore temporary program files
 *.tmp
