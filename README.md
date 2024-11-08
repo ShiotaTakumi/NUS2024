@@ -15,7 +15,7 @@ Follow these steps to create a virtual environment and install the necessary pac
 
 ```bash
 # Create a virtual environment
-python -m venv myenv
+python3 -m venv myenv
 
 # Activate the virtual environment
 source myenv/bin/activate
