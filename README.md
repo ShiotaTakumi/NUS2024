@@ -25,4 +25,7 @@ pip install -r requirements.txt
 
 # Deactivate the virtual environment
 deactivate
+
+# Save the list of installed packages to requirements.txt
+pip freeze > requirements.txt
 ```
