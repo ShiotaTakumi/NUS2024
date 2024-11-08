@@ -98,3 +98,6 @@
 *.fls
 *.fdb_latexmk
 *.pdfsync
+
+# Python virtual environment
+/myenv
