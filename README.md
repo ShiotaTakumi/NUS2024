@@ -7,7 +7,7 @@ This repository contains all slids and program files used during the visit to NU
 ### Python Version
 
 - Python 3.12.0
-- pip 24.2
+- pip 24.3.1
 
 ## Setting Up a Virtual Environment
 
