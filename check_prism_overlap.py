@@ -1,17 +1,17 @@
 #! /usr/bin/env python
 
-import math
+from sympy import Float, pi, sin, cos
 
 """
 @file prism_overlap.py
 @brief Script to generate an SVG file containing multiple polygons.
 @detail This script calculates the vertices of polygons and renders them in an SVG file.
-@version 1.0.3
+@version 1.0.4
 @date 2024-11-10
 @author Takumi Shiota
 """
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-10"
 
@@ -30,34 +30,43 @@ class Polygon:
     @class Polygon
     @brief Represents a polygon and calculates its vertices.
     """
-    def __init__(self, n, side_length=1):
+    def __init__(self, n, side_length=1, precision=100):
         """
         @brief Initializes a polygon with the given number of sides and side length.
         @param n Number of sides (must be >= 3).
         @param side_length Length of each side.
+        @param precision Number of decimal digits for calculations (default: 100).
         @exception ValueError Raised if n < 3.
         """
         if n < 3:
             raise ValueError("A polygon must have at least 3 sides.")
         self.n = n
-        self.side_length = side_length
+        self.side_length = Float(side_length, precision)
+        self.precision = precision
 
     def calculate_polygon_vertices(self, cx, cy):
         """
         @brief Calculates the vertices of a regular polygon centered at (cx, cy).
         @param cx X-coordinate of the center.
         @param cy Y-coordinate of the center.
-        @return List of (x, y) tuples representing the vertices.
+        @return List of (x, y) tuples representing the vertices of the polygon.
         """
-        angle_step = 2 * math.pi / self.n
-        radius = self.side_length / (2 * math.sin(math.pi / self.n))
+        cx = Float(cx, self.precision)
+        cy = Float(cy, self.precision)
 
-        # Rotate the polygon so the first vertex aligns properly
-        offset_angle = angle_step / 2
+        # Angle between consecutive vertices (in radians)
+        angle_step = Float(2, self.precision) * pi / Float(self.n, self.precision)
 
+        # Radius of the circumcircle of the polygon
+        radius = self.side_length / (Float(2, self.precision) * sin(pi / Float(self.n, self.precision)).evalf(self.precision))
+
+        # Offset to rotate the polygon so the first vertex aligns properly
+        offset_angle = angle_step / Float(2, self.precision)
+
+        # Calculate vertices in a counterclockwise order
         vertices = [
-            (cx + radius * math.cos(offset_angle + i * angle_step),
-             cy + radius * math.sin(offset_angle + i * angle_step))
+            (cx + radius * cos(offset_angle + i * angle_step).evalf(self.precision),
+             cy + radius * sin(offset_angle + i * angle_step).evalf(self.precision))
             for i in range(self.n)
         ]
         return vertices
@@ -75,7 +84,7 @@ class SvgDrawer:
         """
         self.filename = filename
 
-    def calculate_viewbox(self, polygons, margin=0.2):
+    def calculate_viewbox(self, polygons, margin=Float(0.2, 100)):
         """
         @brief Calculates a dynamic viewBox based on the given polygons.
         @param polygons List of lists of (x, y) tuples defining the polygons.
@@ -97,7 +106,7 @@ class SvgDrawer:
         width = max_x - min_x
         height = max_y - min_y
 
-        return f"{min_x} {min_y} {width} {height}"
+        return f"{min_x.evalf(100)} {min_y.evalf(100)} {width.evalf(100)} {height.evalf(100)}"
 
     def draw_unfolding(self, polygons):
         """
@@ -112,7 +121,7 @@ class SvgDrawer:
 
             # Write each polygon as a separate <polygon> element
             for polygon in polygons:
-                points = " ".join(f"{x},{y}" for x, y in polygon)
+                points = " ".join(f"{x},{y.evalf(100)}" for x, y in polygon)
                 file.write(f"""<polygon class="no_fill_black_stroke" points="{points}" />\n""")
 
             # Write the SVG footer
