@@ -7,12 +7,12 @@ from sympy import pi, sin, cos
 @brief Script to generate an SVG file containing multiple polygons and a rectangle.
 @detail This script calculates the vertices of a polygon (e.g., prism base) and a rectangle symbolically,
         and renders them as an SVG file.
-@version 1.0.7
+@version 1.0.8
 @date 2024-11-11
 @author Takumi Shiota
 """
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-11"
 
@@ -105,6 +105,27 @@ class Polygon:
         # print(vertices)
 
         return vertices
+    
+    def calculate_c1_vertices(self, polygon_b2, c1_pos):
+        """
+        @brief Calculates the vertices of Rectangle C1.
+        @param start Starting vertex (x, y) of the rectangle.
+        @return List of (x, y) tuples representing the vertices of the rectangle.
+        """
+        width = c1_pos - self.a_height
+        height = self.height
+        angle = ((2 * pi / self.n) * (c1_pos - 1)) - pi
+
+        cx = polygon_b2[c1_pos-1][0]
+        cy = polygon_b2[c1_pos-1][1]
+
+        vertices = [
+            (cx, cy),
+            (cx + width * sin(angle), cy - width * cos(angle)),
+            (cx + width * sin(angle) + height * cos(angle), cy - width * cos(angle) + height * sin(angle)),
+            (cx + height * cos(angle), cy + height * sin(angle))
+        ]
+        return vertices
 
 
 class SvgDrawer:
@@ -192,16 +213,22 @@ def main():
     if a_height > n:
         print(f"Error: Height of Rectangle A must not exceed {n}.")
         return
+    
+    c1_pos = int(input(f"Enter the position of Rectangle C1 (c1_pos > a_height): "))
+    if c1_pos <= a_height:
+        print(f"Error: Position of Rectangle C1 must not be less than {a_height}.")
+        return
 
     # Create polygon and calculate vertices
     polygon = Polygon(n, height, a_height)
     b1_vertices = polygon.calculate_b1_vertices(cx=0, cy=0)  # Vertices of Polygon B1 (base of the prism)
     a_vertices = polygon.calculate_a_vertices(start=b1_vertices[n-1])  # Vertices of Rectangle A
     b2_vertices = polygon.calculate_b2_vertices(cx=a_vertices[2][0], cy=a_vertices[2][1])  # Vertices of Polygon B2 (top base of the prism)
+    c1_vertices = polygon.calculate_c1_vertices(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1
 
     # Render SVG with the calculated shapes
     svg_drawer = SvgDrawer(output_filename)
-    svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices])
+    svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
 
 
 if __name__ == "__main__":
