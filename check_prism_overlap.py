@@ -163,9 +163,9 @@ def main():
         return
 
     # Input the height of Rectangle A
-    a_height = int(input(f"Enter the height of Rectangle A (3 <= a_len <= n): "))
-    if a_height < 3 or a_height > n:
-        print(f"Error: Height of Rectangle A must be between 3 and {n}.")
+    a_height = int(input(f"Enter the height of Rectangle A (n >= a_len): "))
+    if a_height > n:
+        print(f"Error: Height of Rectangle A must not exceed {n}.")
         return
 
     # Create polygon and calculate vertices
