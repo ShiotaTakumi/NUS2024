@@ -7,12 +7,12 @@ from sympy import pi, sin, cos
 @brief Script to generate an SVG file containing multiple polygons and a rectangle.
 @detail This script calculates the vertices of a polygon (e.g., prism base) and a rectangle symbolically,
         and renders them as an SVG file.
-@version 1.0.6
+@version 1.0.7
 @date 2024-11-10
 @author Takumi Shiota
 """
 
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-10"
 
@@ -79,6 +79,31 @@ class Polygon:
             (start[0] + width, start[1] + height),
             (start[0], start[1] + height)
         ]
+        return vertices
+    
+    def calculate_b2_vertices(self, cx, cy):
+        """
+        @brief Calculates the vertices of a regular polygon (top base of the prism).
+        @param cx X-coordinate of the center of the polygon.
+        @param cy Y-coordinate of the center of the polygon.
+        @return List of symbolic (x, y) tuples representing the vertices of the polygon.
+        """
+        angle_step = 2 * pi / self.n
+        radius = self.side_length / (2 * sin(pi / self.n))
+
+        cx += radius * cos(angle_step / 2)
+        cy -= 0.5
+
+        offset_angle = pi + angle_step / 2
+
+        vertices = [
+            (cx + radius * cos(offset_angle + i * angle_step),
+             cy + radius * sin(offset_angle + i * angle_step))
+            for i in range(self.n)
+        ]
+
+        # print(vertices)
+
         return vertices
 
 
@@ -170,12 +195,13 @@ def main():
 
     # Create polygon and calculate vertices
     polygon = Polygon(n, height, a_height)
-    b1_vertices = polygon.calculate_b1_vertices(cx=0, cy=0)  # Vertices of the polygon (base of prism)
-    a_vertices = polygon.calculate_a_vertices(start=b1_vertices[n-1])  # Rectangle A vertices
+    b1_vertices = polygon.calculate_b1_vertices(cx=0, cy=0)  # Vertices of Polygon B1 (base of the prism)
+    a_vertices = polygon.calculate_a_vertices(start=b1_vertices[n-1])  # Vertices of Rectangle A
+    b2_vertices = polygon.calculate_b2_vertices(cx=a_vertices[2][0], cy=a_vertices[2][1])  # Vertices of Polygon B2 (top base of the prism)
 
     # Render SVG with the calculated shapes
     svg_drawer = SvgDrawer(output_filename)
-    svg_drawer.draw_unfolding([b1_vertices, a_vertices])
+    svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices])
 
 
 if __name__ == "__main__":
