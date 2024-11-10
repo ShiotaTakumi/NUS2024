@@ -8,13 +8,13 @@ from sympy import pi, sin, cos
 @detail This script calculates the vertices of a polygon (e.g., prism base) and a rectangle symbolically,
         and renders them as an SVG file.
 @version 1.0.7
-@date 2024-11-10
+@date 2024-11-11
 @author Takumi Shiota
 """
 
 __version__ = "1.0.7"
 __author__ = "Takumi Shiota"
-__date__ = "2024-11-10"
+__date__ = "2024-11-11"
 
 # SVG templates
 SVG_HEADER_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
