@@ -188,7 +188,7 @@ def main():
         return
 
     # Input the height of Rectangle A
-    a_height = int(input(f"Enter the height of Rectangle A (n >= a_len): "))
+    a_height = int(input(f"Enter the height of Rectangle A (n >= a_height): "))
     if a_height > n:
         print(f"Error: Height of Rectangle A must not exceed {n}.")
         return
