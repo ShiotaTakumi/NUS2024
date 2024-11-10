@@ -2,14 +2,14 @@
 
 """
 @file prism_overlap.py
-@brief Script to draw an SVG
-@detail This script generates an SVG file containing a polygon defined by given vertices.
-@version 1.0.1
+@brief Script to draw an SVG with multiple polygons
+@detail This script generates an SVG file containing multiple polygons defined by given vertices.
+@version 1.0.2
 @date 2024-11-10
 @author Takumi Shiota
 """
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-10"
 
@@ -36,18 +36,19 @@ class SvgDrawer:
         """
         self.filename = filename
 
-    def calculate_viewbox(self, vertices, margin=0.2):
+    def calculate_viewbox(self, polygons, margin=0.2):
         """
-        @brief Calculate a dynamic viewBox based on the given vertices
-        @param vertices List of (x, y) tuples defining the vertices of the polygon
-        @param margin Additional space to include around the polygon in the viewBox
+        @brief Calculate a dynamic viewBox based on the given polygons
+        @param polygons List of lists of (x, y) tuples defining the vertices of the polygons
+        @param margin Additional space to include around the polygons in the viewBox
         @return A formatted string for the viewBox
         """
-        # Find the minimum and maximum x and y coordinates
-        min_x = min(x for x, _ in vertices)
-        max_x = max(x for x, _ in vertices)
-        min_y = min(y for _, y in vertices)
-        max_y = max(y for _, y in vertices)
+        # Flatten the list of polygons and find the min/max coordinates
+        all_vertices = [vertex for polygon in polygons for vertex in polygon]
+        min_x = min(x for x, _ in all_vertices)
+        max_x = max(x for x, _ in all_vertices)
+        min_y = min(y for _, y in all_vertices)
+        max_y = max(y for _, y in all_vertices)
 
         # Add margin to each side
         min_x -= margin
@@ -61,24 +62,23 @@ class SvgDrawer:
 
         return f"{min_x} {min_y} {width} {height}"
 
-    def draw_unfolding(self, vertices):
+    def draw_unfolding(self, polygons):
         """
-        @brief Create and save the SVG file based on given vertices
-        @param vertices List of (x, y) tuples defining the polygon
+        @brief Create and save the SVG file containing multiple polygons
+        @param polygons List of lists of (x, y) tuples defining the polygons
         """
-        # Calculate the dynamic viewBox
-        view_box = self.calculate_viewbox(vertices)
+        # Calculate the dynamic viewBox based on all polygons
+        view_box = self.calculate_viewbox(polygons)
 
         # Write the SVG content to the file
         with open(self.filename, 'w') as file:
             # Write the header with the calculated viewBox
             file.write(SVG_HEADER_TEMPLATE.format(view_box=view_box))
 
-            # Define the polygon points as a space-separated string
-            points = " ".join(f"{x},{y}" for x, y in vertices)
-
-            # Write the polygon element
-            file.write(f"""<polygon class="no_fill_black_stroke" points="{points}" />\n""")
+            # Write each polygon as a separate <polygon> element
+            for polygon in polygons:
+                points = " ".join(f"{x},{y}" for x, y in polygon)
+                file.write(f"""<polygon class="no_fill_black_stroke" points="{points}" />\n""")
 
             # Write the SVG footer
             file.write(SVG_FOOTER)
@@ -91,12 +91,16 @@ def main():
     # Name of the output SVG file
     output_filename = "out.svg"
 
-    # Vertices defining a square: (0, 0), (0, 1), (1, 1), (1, 0)
-    vertices = [(0, 0), (0, 1), (1, 1), (1, 0)]
+    # Define multiple polygons
+    polygons = [
+        [(0, 0), (0, 1), (1, 1), (1, 0)],   # First polygon
+        [(1, 0), (1, 1), (1.8660, 0.5)],    # Second polygon
+        [(0, 1), (1, 1), (1, 2), (0, 2)]    # Third polygon
+    ]
 
     # Create an instance of SvgDrawer and render the SVG file
     svg_drawer = SvgDrawer(output_filename)
-    svg_drawer.draw_unfolding(vertices)
+    svg_drawer.draw_unfolding(polygons)
 
 
 ####################

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="-0.2 -0.2 1.4 1.4">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="-0.2 -0.2 2.2660000000000005 2.4000000000000004">
 <style>.no_fill_black_stroke {fill:none; stroke:#000000; stroke-width:0.01;}</style>
 <polygon class="no_fill_black_stroke" points="0,0 0,1 1,1 1,0" />
+<polygon class="no_fill_black_stroke" points="1,0 1,1 1.866,0.5" />
+<polygon class="no_fill_black_stroke" points="0,1 1,1 1,2 0,2" />
 </svg>
