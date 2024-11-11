@@ -7,12 +7,12 @@ from sympy import pi, sin, cos
 @brief Script to generate an SVG file containing multiple polygons and a rectangle.
 @detail This script calculates the vertices of a polygon (e.g., prism base) and a rectangle symbolically,
         and renders them as an SVG file.
-@version 1.0.8
+@version 1.1.0
 @date 2024-11-11
 @author Takumi Shiota
 """
 
-__version__ = "1.0.8"
+__version__ = "1.1.0"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-11"
 
@@ -190,6 +190,39 @@ class SvgDrawer:
             file.write(SVG_FOOTER)
 
 
+class PolygonInteresection:
+    """
+    @class PolygonInteresection
+    @brief Class for managing edge combinations and intersection detection between polygons.
+    """
+    def __init__(self):
+        """
+        @brief Initializes the PolygonInteresection class.
+        """
+        pass
+
+    def generate_edge_combinations(self, vertices1, vertices2):
+        """
+        @brief Generates all edge combinations between two polygons.
+        @param vertices1 List of vertices (x, y) for the first polygon.
+        @param vertices2 List of vertices (x, y) for the second polygon.
+        @return List of tuples, where each tuple contains an edge from vertices1 and an edge from vertices2.
+        """
+        def edges_from_vertices(vertices):
+            """
+            @brief Generates edges (pairs of vertices) from a list of vertices.
+            @param vertices List of vertices (x, y).
+            @return List of edges, where each edge is a tuple of two vertices.
+            """
+            return [(vertices[i], vertices[(i + 1) % len(vertices)]) for i in range(len(vertices))]
+
+        edges1 = edges_from_vertices(vertices1)
+        edges2 = edges_from_vertices(vertices2)
+
+        combinations = [(edge1, edge2) for edge1 in edges1 for edge2 in edges2]
+        return combinations
+
+
 def main():
     """
     @brief Main function to execute the script.
@@ -229,6 +262,16 @@ def main():
     # Render SVG with the calculated shapes
     svg_drawer = SvgDrawer(output_filename)
     svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
+
+    # Initialize the PolygonInteresection class for edge combination generation
+    intersec_checker = PolygonInteresection()
+
+    # Generate all edge combinations between Polygon B1 and Rectangle C1
+    edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c1_vertices)
+
+    # Print each edge combination to verify the generated pairs
+    for edge1, edge2 in edge_comb:
+        print(f"B1 Edge: {edge1} <-> C1 Edge: {edge2}")
 
 
 if __name__ == "__main__":
