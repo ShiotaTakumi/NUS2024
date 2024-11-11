@@ -112,12 +112,12 @@ class Polygon:
         @param start Starting vertex (x, y) of the rectangle.
         @return List of (x, y) tuples representing the vertices of the rectangle.
         """
-        width = c1_pos - self.a_height
+        width = c1_pos + 1 - self.a_height
         height = self.height
-        angle = ((2 * pi / self.n) * (c1_pos - 1)) - pi
+        angle = ((2 * pi / self.n) * (c1_pos)) - pi
 
-        cx = polygon_b2[c1_pos-1][0]
-        cy = polygon_b2[c1_pos-1][1]
+        cx = polygon_b2[c1_pos][0]
+        cy = polygon_b2[c1_pos][1]
 
         vertices = [
             (cx, cy),
@@ -263,6 +263,7 @@ def main():
     svg_drawer = SvgDrawer(output_filename)
     svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
 
+    """
     # Initialize the PolygonInteresection class for edge combination generation
     intersec_checker = PolygonInteresection()
 
@@ -272,6 +273,7 @@ def main():
     # Print each edge combination to verify the generated pairs
     for edge1, edge2 in edge_comb:
         print(f"B1 Edge: {edge1} <-> C1 Edge: {edge2}")
+    """
 
 
 if __name__ == "__main__":
