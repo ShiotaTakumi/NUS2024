@@ -1,20 +1,21 @@
 #! /usr/bin/env python
 
-from sympy import pi, sin, cos
+from sympy import pi, sin, cos, Float
 
 """
 @file prism_overlap.py
-@brief Script to generate an SVG file containing multiple polygons and a rectangle.
-@detail This script calculates the vertices of a polygon (e.g., prism base) and a rectangle symbolically,
-        and renders them as an SVG file.
-@version 1.0.9
-@date 2024-11-11
+@brief Script to generate an SVG file containing multiple polygons and rectangles.
+@detail This script calculates the vertices of polygons (e.g., prism bases) and rectangles symbolically,
+        and renders them as an SVG file. It also includes functionality to check for edge intersections
+        between polygons.
+@version 1.1.1
+@date 2024-11-12
 @author Takumi Shiota
 """
 
-__version__ = "1.0.9"
+__version__ = "1.1.1"
 __author__ = "Takumi Shiota"
-__date__ = "2024-11-11"
+__date__ = "2024-11-12"
 
 # SVG templates
 SVG_HEADER_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
@@ -31,6 +32,7 @@ class Polygon:
     @class Polygon
     @brief Represents a polygon and provides methods to calculate its vertices and related shapes.
     """
+
     def __init__(self, n, height, a_height, side_length=1):
         """
         @brief Initializes a polygon and related rectangle parameters.
@@ -101,20 +103,18 @@ class Polygon:
              cy + radius * sin(offset_angle + i * angle_step))
             for i in range(self.n)
         ]
-
-        # print(vertices)
-
         return vertices
     
     def calculate_c1_vertices_v1(self, polygon_b2, c1_pos):
         """
-        @brief Calculates the vertices of Rectangle C1.
-        @param start Starting vertex (x, y) of the rectangle.
+        @brief Calculates the vertices of Rectangle C1 (version 1).
+        @param polygon_b2 List of vertices of Polygon B2 (top base of the prism).
+        @param c1_pos Position index for Rectangle C1.
         @return List of (x, y) tuples representing the vertices of the rectangle.
         """
         width = c1_pos + 1 - self.a_height
         height = self.height
-        angle = ((2 * pi / self.n) * (c1_pos)) - pi
+        angle = ((2 * pi / self.n) * c1_pos) - pi
 
         cx = polygon_b2[c1_pos][0]
         cy = polygon_b2[c1_pos][1]
@@ -129,8 +129,9 @@ class Polygon:
 
     def calculate_c1_vertices_v2(self, polygon_b2, c1_pos):
         """
-        @brief Calculates the vertices of Rectangle C1.
-        @param start Starting vertex (x, y) of the rectangle.
+        @brief Calculates the vertices of Rectangle C1 (version 2).
+        @param polygon_b2 List of vertices of Polygon B2 (top base of the prism).
+        @param c1_pos Position index for Rectangle C1.
         @return List of (x, y) tuples representing the vertices of the rectangle.
         """
         width = self.n - c1_pos
@@ -154,6 +155,7 @@ class SvgDrawer:
     @class SvgDrawer
     @brief Creates and renders SVG files containing multiple polygons.
     """
+
     def __init__(self, filename):
         """
         @brief Initializes the SVG drawer with the output filename.
@@ -211,16 +213,18 @@ class SvgDrawer:
             file.write(SVG_FOOTER)
 
 
-class PolygonInteresection:
+class PolygonIntersection:
     """
-    @class PolygonInteresection
+    @class PolygonIntersection
     @brief Class for managing edge combinations and intersection detection between polygons.
     """
-    def __init__(self):
+
+    def __init__(self, tolerance=1e-10):
         """
-        @brief Initializes the PolygonInteresection class.
+        @brief Initializes the PolygonIntersection class.
+        @param tolerance Precision threshold for floating-point comparisons.
         """
-        pass
+        self.tolerance = tolerance
 
     def generate_edge_combinations(self, vertices1, vertices2):
         """
@@ -240,9 +244,95 @@ class PolygonInteresection:
         edges1 = edges_from_vertices(vertices1)
         edges2 = edges_from_vertices(vertices2)
 
-        combinations = [(edge1, edge2) for edge1 in edges1 for edge2 in edges2]
-        return combinations
+        return [(edge1, edge2) for edge1 in edges1 for edge2 in edges2]
+        
+    def points_equal(self, point1, point2):
+        """
+        @brief Checks if two points are equal within a given tolerance.
+        @param point1 Tuple (x1, y1) representing the first point.
+        @param point2 Tuple (x2, y2) representing the second point.
+        @return True if the points are equal, False otherwise.
+        """
+        x1, y1 = point1
+        x2, y2 = point2
+        return abs(x1 - x2) < self.tolerance and abs(y1 - y2) < self.tolerance
+    
+    def point_on_edge(self, point, edge):
+        """
+        @brief Checks if a point is on a given edge.
+        @param point Tuple (px, py) representing the point.
+        @param edge Tuple of two points ((x1, y1), (x2, y2)) representing the edge.
+        @return True if the point lies on the edge, False otherwise.
+        """
+        px, py = point
+        (x1, y1), (x2, y2) = edge
 
+        # Check if the cross product is near zero (point lies on the line)
+        cross_product = (px - x1) * (y2 - y1) - (py - y1) * (x2 - x1)
+        if abs(cross_product) > self.tolerance:
+            return False
+
+        # Check if the point is within the edge bounds
+        dot_product = (px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)
+        if dot_product < 0:
+            return False
+
+        squared_length = (x2 - x1) ** 2 + (y2 - y1) ** 2
+        if dot_product > squared_length:
+            return False
+
+        return True
+    
+
+    def edge_intersection(self, edge1, edge2, evalf_precision=100):
+        """
+        @brief Checks if two edges intersect using cross products and checks for overlaps.
+        @param edge1 A tuple of two points ((x1, y1), (x2, y2)) representing the first edge.
+        @param edge2 A tuple of two points ((x3, y3), (x4, y4)) representing the second edge.
+        @param evalf_precision Number of decimal digits for numerical evaluation.
+        @return True if the edges intersect or overlap, False otherwise.
+        """
+        (x1, y1), (x2, y2) = edge1
+        (x3, y3), (x4, y4) = edge2
+
+        # Calculate determinants for the four cases
+        d1 = ((x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1)).evalf(evalf_precision)
+        d2 = ((x4 - x1) * (y2 - y1) - (y4 - y1) * (x2 - x1)).evalf(evalf_precision)
+        d3 = ((x1 - x3) * (y4 - y3) - (y1 - y3) * (x4 - x3)).evalf(evalf_precision)
+        d4 = ((x2 - x3) * (y4 - y3) - (y2 - y3) * (x4 - x3)).evalf(evalf_precision)
+
+        # If the edges are collinear (all cross products are zero),
+        # check if their bounding boxes overlap to determine if the edges overlap.
+        if d1 == 0 and d2 == 0 and d3 == 0 and d4 == 0:
+            # Calculate the bounds for both edges
+            min_x1, max_x1 = sorted([x1, x2])
+            min_y1, max_y1 = sorted([y1, y2])
+            min_x2, max_x2 = sorted([x3, x4])
+            min_y2, max_y2 = sorted([y3, y4])
+            return not (max_x1 < min_x2 or max_x2 < min_x1 or max_y1 < min_y2 or max_y2 < min_y1)
+        
+        # Check for vertex-to-vertex contact
+        vv_in_touch = (
+            self.points_equal((x1, y1), (x3, y3)) or
+            self.points_equal((x1, y1), (x4, y4)) or
+            self.points_equal((x2, y2), (x3, y3)) or
+            self.points_equal((x2, y2), (x4, y4))
+        )
+        
+        # Check for vertex-to-edge contact
+        ve_in_touch = (
+            self.point_on_edge((x1, y1), edge2) or
+            self.point_on_edge((x2, y2), edge2) or
+            self.point_on_edge((x3, y3), edge1) or
+            self.point_on_edge((x4, y4), edge1)
+        )
+
+        # Check for proper intersection
+        proper_intersection = (d1 * d2 < 0 and d3 * d4 < 0)
+
+        # Return True if edges intersect or touch
+        return proper_intersection or vv_in_touch or ve_in_touch
+    
 
 def main():
     """
@@ -267,10 +357,11 @@ def main():
     if a_height > n:
         print(f"Error: Height of Rectangle A must not exceed {n}.")
         return
-    
+
+    # Input the position of Rectangle C1
     c1_pos = int(input(f"Enter the position of Rectangle C1 (c1_pos > a_height): "))
     if c1_pos <= a_height:
-        print(f"Error: Position of Rectangle C1 must not be less than {a_height}.")
+        print(f"Error: Position of Rectangle C1 must be greater than {a_height}.")
         return
 
     # Create polygon and calculate vertices
@@ -281,21 +372,29 @@ def main():
     # c1_vertices = polygon.calculate_c1_vertices_v1(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-1)
     c1_vertices = polygon.calculate_c1_vertices_v2(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-2)
 
+    # Test polygons for intersection testing (uncomment to use)
+    test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
+    # test_poly2 = [(Float(1), Float(1)), (Float(3), Float(1)), (Float(3), Float(3)), (Float(1), Float(3))]
+    # test_poly2 = [(Float(2), Float(0)), (Float(4), Float(0)), (Float(4), Float(2)), (Float(2), Float(2))]
+    # test_poly2 = [(Float(2), Float(2)), (Float(4), Float(2)), (Float(4), Float(4)), (Float(2), Float(4))]
+    test_poly2 = [(Float(2), Float(1)), (Float(3), Float(0)), (Float(4), Float(1)), (Float(3), Float(2))]
+
     # Render SVG with the calculated shapes
     svg_drawer = SvgDrawer(output_filename)
-    svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
+    # svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
+    svg_drawer.draw_unfolding([test_poly1, test_poly2])
 
-    """
-    # Initialize the PolygonInteresection class for edge combination generation
-    intersec_checker = PolygonInteresection()
+    # Initialize the PolygonIntersection class for edge combination generation
+    intersec_checker = PolygonIntersection()
 
     # Generate all edge combinations between Polygon B1 and Rectangle C1
-    edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c1_vertices)
+    # edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c1_vertices)
+    edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
 
-    # Print each edge combination to verify the generated pairs
+    # Check and print each edge combination for intersections
     for edge1, edge2 in edge_comb:
-        print(f"B1 Edge: {edge1} <-> C1 Edge: {edge2}")
-    """
+        intersects = intersec_checker.edge_intersection(edge1=edge1, edge2=edge2)
+        print(f"Edge1: {edge1} <-> Edge2: {edge2} : Intersects: {intersects}")
 
 
 if __name__ == "__main__":
