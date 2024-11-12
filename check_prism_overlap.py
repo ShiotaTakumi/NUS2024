@@ -8,12 +8,12 @@ from sympy import pi, sin, cos, Float
 @detail This script calculates the vertices of polygons (e.g., prism bases) and rectangles symbolically,
         and renders them as an SVG file. It also includes functionality to check for edge intersections
         between polygons.
-@version 1.1.1
+@version 1.1.2
 @date 2024-11-12
 @author Takumi Shiota
 """
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-12"
 
@@ -369,33 +369,45 @@ def main():
     b1_vertices = polygon.calculate_b1_vertices(cx=0, cy=0)  # Vertices of Polygon B1 (base of the prism)
     a_vertices = polygon.calculate_a_vertices(start=b1_vertices[n-1])  # Vertices of Rectangle A
     b2_vertices = polygon.calculate_b2_vertices(cx=a_vertices[2][0], cy=a_vertices[2][1])  # Vertices of Polygon B2 (top base of the prism)
-    # c1_vertices = polygon.calculate_c1_vertices_v1(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-1)
-    c1_vertices = polygon.calculate_c1_vertices_v2(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-2)
+    c1_vertices = polygon.calculate_c1_vertices_v1(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-1)
+    # c1_vertices = polygon.calculate_c1_vertices_v2(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-2)
 
     # Test polygons for intersection testing (uncomment to use)
-    test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
+    # test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
     # test_poly2 = [(Float(1), Float(1)), (Float(3), Float(1)), (Float(3), Float(3)), (Float(1), Float(3))]
     # test_poly2 = [(Float(2), Float(0)), (Float(4), Float(0)), (Float(4), Float(2)), (Float(2), Float(2))]
     # test_poly2 = [(Float(2), Float(2)), (Float(4), Float(2)), (Float(4), Float(4)), (Float(2), Float(4))]
-    test_poly2 = [(Float(2), Float(1)), (Float(3), Float(0)), (Float(4), Float(1)), (Float(3), Float(2))]
+    # test_poly2 = [(Float(2), Float(1)), (Float(3), Float(0)), (Float(4), Float(1)), (Float(3), Float(2))]
+    # test_poly2 = [(Float(3), Float(1)), (Float(5), Float(1)), (Float(5), Float(3)), (Float(3), Float(3))]
 
     # Render SVG with the calculated shapes
     svg_drawer = SvgDrawer(output_filename)
-    # svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
-    svg_drawer.draw_unfolding([test_poly1, test_poly2])
+    svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
+    # svg_drawer.draw_unfolding([test_poly1, test_poly2])  # Test edge combination generation
 
     # Initialize the PolygonIntersection class for edge combination generation
     intersec_checker = PolygonIntersection()
 
     # Generate all edge combinations between Polygon B1 and Rectangle C1
-    # edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c1_vertices)
-    edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
+    edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c1_vertices)
+    # edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
 
-    # Check and print each edge combination for intersections
+    # Check if any edge combination intersects
+    any_intersects = False
+
     for edge1, edge2 in edge_comb:
         intersects = intersec_checker.edge_intersection(edge1=edge1, edge2=edge2)
-        print(f"Edge1: {edge1} <-> Edge2: {edge2} : Intersects: {intersects}")
+        if intersects:
+            any_intersects = True
+            break
+
+    # Output the result with appropriate messages
+    if any_intersects:
+        print("Overlapping partial edge unfolding")
+    else:
+        print("Non-overlapping partial edge unfolding")
 
 
+####################
 if __name__ == "__main__":
     main()
