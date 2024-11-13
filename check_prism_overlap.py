@@ -8,14 +8,14 @@ from sympy import pi, sin, cos, Float
 @detail This script calculates the vertices of polygons (e.g., prism bases) and rectangles symbolically,
         and renders them as an SVG file. It also includes functionality to check for edge intersections
         between polygons.
-@version 1.1.3
-@date 2024-11-13
+@version 1.1.4
+@date 2024-11-14
 @author Takumi Shiota
 """
 
-__version__ = "1.1.3"
+__version__ = "1.1.4"
 __author__ = "Takumi Shiota"
-__date__ = "2024-11-13"
+__date__ = "2024-11-14"
 
 # SVG templates
 SVG_HEADER_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
@@ -143,6 +143,27 @@ class Polygon:
         ]
         return vertices
 
+    def calculate_c1_vertices_III_1(self, polygon_b1, c1, e1):
+        """
+        @brief Calculates the vertices of polygon C1.
+        @param polygon_b1 List of vertices of Polygon B1.
+        @param c1 Position of rectangle C1.
+        @return List of symbolic (x, y) tuples representing vertices of rectangle C1.
+        """
+        strip = e1
+        th = (2 * pi / self.n) * (self.n - c1)
+
+        c1_0_x = polygon_b1[self.n - c1][0]
+        c1_0_y = polygon_b1[self.n - c1][1]
+
+        vertices = [
+            (c1_0_x, c1_0_y),  # c1_0
+            (c1_0_x + strip * sin(th), c1_0_y - strip * cos(th)),  # c1_1
+            (c1_0_x + strip * sin(th) + self.h * cos(th), c1_0_y - strip * cos(th) + self.h * sin(th)),  # c1_2
+            (c1_0_x + self.h * cos(th), c1_0_y + self.h * sin(th))  # c1_3
+        ]
+        return vertices
+
     def calculate_c2_vertices_I_1(self, polygon_b2, c2):
         """
         @brief Calculates the vertices of polygon C2.
@@ -182,6 +203,27 @@ class Polygon:
             (c2_0_x - strip * sin(th), c2_0_y - strip * cos(th)),  # c2_1
             (c2_0_x - strip * sin(th) - self.h * cos(th), c2_0_y - strip * cos(th) + self.h * sin(th)),  # c2_2
             (c2_0_x - self.h * cos(th), c2_0_y + self.h * sin(th))  # c2_3
+        ]
+        return vertices
+    
+    def calculate_c2_vertices_III_1(self, polygon_b2, c2, e2):
+        """
+        @brief Calculates the vertices of polygon C2.
+        @param polygon_b2 List of vertices of Polygon B2.
+        @param c2 Position of rectangle C2.
+        @return List of symbolic (x, y) tuples representing vertices of rectangle C2.
+        """
+        strip = e2
+        th = pi - ((2 * pi / self.n) * c2)
+
+        c2_0_x = polygon_b2[c2][0]
+        c2_0_y = polygon_b2[c2][1]
+
+        vertices = [
+            (c2_0_x, c2_0_y),  # c2_0
+            (c2_0_x - strip * sin(th), c2_0_y - strip * cos(th)),  # c2_1
+            (c2_0_x - strip * sin(th) + self.h * cos(th), c2_0_y - strip * cos(th) - self.h * sin(th)),  # c2_2
+            (c2_0_x + self.h * cos(th), c2_0_y - self.h * sin(th))  # c2_3
         ]
         return vertices
 
@@ -403,12 +445,36 @@ def main():
         if c2 <= a or c2 >= n:
             print(f"Error: c2 <= {a} or c2 >= {n}.")
             return
-
-    if type == 'II-1' or type == 'II-2':
+    elif type == 'II-1' or type == 'II-2':
         # Input the position of Rectangle C1
-        c1 = int(input(f"Enter the position of Rectangle C1 (0 < c2 <= {n - a}): "))
+        c1 = int(input(f"Enter the position of Rectangle C1 (0 < c1 <= {n - a}): "))
         if c1 <= 0 or c1 > n - a:
             print(f"Error: c1 <= 0 or c1 > {n - a}.")
+            return
+    elif type == 'III-1':
+        c1 = int(input(f"Enter the position of Rectangle C1 (0 < c1 <= {n - a}): "))
+        if c1 <= 0 or c1 > n - a:
+            print(f"Error: c1 <= 0 or c1 > {n - a}.")
+            return
+        c2 = int(input(f"Enter the position of Rectangle C2 ({a} < c2 < {n} (i) {c1 + a - 1} < c2 (ii) {c1 + a - 1} > c2): "))
+        if c2 <= a or c2 >= n or c2 == c1 + a - 1:
+            print(f"Error: c2 <= {a} or c2 >= {n} or c2 == {c1 + a - 1}.")
+            return
+        if c1 + a - 1 < c2:
+            if c2 - c1 - (a - 1) < n - (a - 1) - c1:
+                e1 = int(input(f"Enter the length of e1 (1 <= e1 <= {c2 - c1 - (a - 1)}): "))
+                if 1 > e1 or c2 - c1 - (a - 1) < e1:
+                    print(f"Error: 1 <= e1 <= {c2 - c1 - (a - 1)}.")
+                    return
+            else:
+                e1 = int(input(f"Enter the length of e1 (1 <= e1 <= {n - (a - 1) - c1}): "))
+                if 1 > e1 or n - (a - 1) - c1 < e1:
+                    print(f"Error: 1 <= e1 <= {n - (a - 1) - c1}.")
+                    return
+            e2 = c2 - ((a - 1) + c1 + e1) + 1
+        elif c1 + a - 1 > c2:
+            e1 = (n - a) - c1 + 1
+            e2 = c2 - a + 1
 
     # Create each polygon's vertices
     polygon = Polygon(n, h, a)
@@ -425,6 +491,10 @@ def main():
         c1_vertices = polygon.calculate_c1_vertices_II_1(b1_vertices, c1)
     elif type == 'II-2':
         c1_vertices = polygon.calculate_c1_vertices_II_2(b1_vertices, c1)
+    elif type == 'III-1':
+        b2_vertices = polygon.calculate_b2_vertices(a_vertices)  # Vertices of polygon B2
+        c1_vertices = polygon.calculate_c1_vertices_III_1(b1_vertices, c1, e1)
+        c2_vertices = polygon.calculate_c2_vertices_III_1(b2_vertices, c2, e2)
     else:
         # Polygons for intersection testing (uncomment to use)
         test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
@@ -440,36 +510,38 @@ def main():
         svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c2_vertices])
     elif type == 'II-1' or type == 'II-2':
         svg_drawer.draw_unfolding([b1_vertices, a_vertices, c1_vertices])
+    elif type == 'III-1':
+        svg_drawer.draw_unfolding([c1_vertices, b1_vertices, a_vertices, b2_vertices, c2_vertices])        
     else:
         svg_drawer.draw_unfolding([test_poly1, test_poly2])  # Test edge combination generation
 
-    # Initialize the PolygonIntersection class for edge combination generation
-    intersec_checker = PolygonIntersection()
+    # # Initialize the PolygonIntersection class for edge combination generation
+    # intersec_checker = PolygonIntersection()
 
-    # Generate all edge combinations between polygon X and polygon Y
-    if type == 'I-1' or type == 'I-2':
-        edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c2_vertices)
-    elif type == 'II-1' or type == 'II-2':
-        edge_comb = intersec_checker.generate_edge_combinations(a_vertices, c1_vertices)
-    else: 
-        edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
+    # # Generate all edge combinations between polygon X and polygon Y
+    # if type == 'I-1' or type == 'I-2':
+    #     edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c2_vertices)
+    # elif type == 'II-1' or type == 'II-2':
+    #     edge_comb = intersec_checker.generate_edge_combinations(a_vertices, c1_vertices)
+    # else: 
+    #     edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
 
-    # Check if any edge combination intersects
-    any_intersects = False
+    # # Check if any edge combination intersects
+    # any_intersects = False
 
-    print("Checking for overlap...")
+    # print("Checking for overlap...")
 
-    for edge1, edge2 in edge_comb:
-        intersects = intersec_checker.edge_intersection(edge1, edge2)
-        if intersects:
-            any_intersects = True
-            break
+    # for edge1, edge2 in edge_comb:
+    #     intersects = intersec_checker.edge_intersection(edge1, edge2)
+    #     if intersects:
+    #         any_intersects = True
+    #         break
 
-    # Output the result with appropriate messages
-    if any_intersects:
-        print("Overlapping")
-    else:
-        print("Not overlapping")
+    # # Output the result with appropriate messages
+    # if any_intersects:
+    #     print("Overlapping")
+    # else:
+    #     print("Not overlapping")
 
 
 ####################
