@@ -101,15 +101,37 @@ class Polygon:
         ]
         return vertices
     
+    def calculate_c1_vertices_II_1(self, polygon_b1, c1):
+        """
+        @brief Calculates the vertices of polygon C1.
+        @param polygon_b1 List of vertices of Polygon B1.
+        @param c1 Position of rectangle C1.
+        @return List of symbolic (x, y) tuples representing vertices of rectangle C1.
+        """
+        strip = ((self.n - self.a) - c1) + 1
+        th = (2 * pi / self.n) * (self.n - c1)
+
+        c1_0_x = polygon_b1[self.n - c1][0]
+        c1_0_y = polygon_b1[self.n - c1][1]
+
+        vertices = [
+            (c1_0_x, c1_0_y),  # c1_0
+            (c1_0_x + strip * sin(th), c1_0_y - strip * cos(th)),  # c1_1
+            (c1_0_x + strip * sin(th) + self.h * cos(th), c1_0_y - strip * cos(th) + self.h * sin(th)),  # c1_2
+            (c1_0_x + self.h * cos(th), c1_0_y + self.h * sin(th))  # c1_3
+        ]
+        return vertices
+
+
     def calculate_c2_vertices_I_1(self, polygon_b2, c2):
         """
         @brief Calculates the vertices of polygon C2.
         @param polygon_b2 List of vertices of Polygon B2.
-        @param c2 Position of Rectangle C2.
+        @param c2 Position of rectangle C2.
         @return List of symbolic (x, y) tuples representing vertices of rectangle C2.
         """
         strip = (c2 - self.a) + 1
-        th = ((2 * pi / self.n) * c2)
+        th = (2 * pi / self.n) * c2
 
         c2_0_x = polygon_b2[c2][0]
         c2_0_y = polygon_b2[c2][1]
@@ -126,7 +148,7 @@ class Polygon:
         """
         @brief Calculates the vertices of polygon C2.
         @param polygon_b2 List of vertices of Polygon B2.
-        @param c2 Position of Rectangle C2.
+        @param c2 Position of rectangle C2.
         @return List of symbolic (x, y) tuples representing vertices of rectangle C2.
         """
         strip = ((self.n - 1) - c2) + 1
@@ -335,7 +357,7 @@ def main():
     output_filename = "out.svg"
 
     # Ask the user for the type of overlap to check
-    type = input("Enter the type of overlap to check (I-1, I-2): ").strip()
+    type = input("Enter the type of overlap to check (I-1, I-2, II-1): ").strip()
 
     # Input number of sides for the polygon
     n = int(input(f"Enter number of sides for the polygon n (n >= 3): "))
@@ -355,11 +377,18 @@ def main():
         print(f"Error: a <= {n}.")
         return
 
-    # Input the position of Rectangle C2
-    c2 = int(input(f"Enter the position of Rectangle C2 ({a} < c2 < {n}): "))
-    if c2 <= a or c2 >= n:
-        print(f"Error: c2 <= {a} or c2 >= {n}.")
-        return
+    if type == 'I-1' or type == 'I-2':
+        # Input the position of Rectangle C2
+        c2 = int(input(f"Enter the position of Rectangle C2 ({a} < c2 < {n}): "))
+        if c2 <= a or c2 >= n:
+            print(f"Error: c2 <= {a} or c2 >= {n}.")
+            return
+
+    if type == 'II-1':
+        # Input the position of Rectangle C1
+        c1 = int(input(f"Enter the position of Rectangle C1 (0 < c2 <= {n - a}): "))
+        if c1 <= 0 or c1 > n - a:
+            print(f"Error: c1 <= 0 or c1 > {n - a}.")
 
     # Create each polygon's vertices
     polygon = Polygon(n, h, a)
@@ -372,6 +401,8 @@ def main():
     elif type == 'I-2':
         b2_vertices = polygon.calculate_b2_vertices(a_vertices)  # Vertices of polygon B2
         c2_vertices = polygon.calculate_c2_vertices_I_2(b2_vertices, c2)  # Vertices of rectangle C2
+    elif type == 'II-1':
+        c1_vertices = polygon.calculate_c1_vertices_II_1(b1_vertices, c1)
     else:
         # Polygons for intersection testing (uncomment to use)
         test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
@@ -385,6 +416,8 @@ def main():
     svg_drawer = SvgDrawer(output_filename)
     if type == 'I-1' or type == 'I-2':
         svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c2_vertices])
+    elif type == 'II-1':
+        svg_drawer.draw_unfolding([b1_vertices, a_vertices, c1_vertices])
     else:
         svg_drawer.draw_unfolding([test_poly1, test_poly2])  # Test edge combination generation
 
@@ -394,14 +427,18 @@ def main():
     # Generate all edge combinations between polygon X and polygon Y
     if type == 'I-1' or type == 'I-2':
         edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c2_vertices)
+    elif type == 'II-1':
+        edge_comb = intersec_checker.generate_edge_combinations(a_vertices, c1_vertices)
     else: 
         edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
 
     # Check if any edge combination intersects
     any_intersects = False
 
+    print("Checking for overlap...")
+
     for edge1, edge2 in edge_comb:
-        intersects = intersec_checker.edge_intersection(edge1=edge1, edge2=edge2)
+        intersects = intersec_checker.edge_intersection(edge1, edge2)
         if intersects:
             any_intersects = True
             break
