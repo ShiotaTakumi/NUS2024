@@ -419,7 +419,7 @@ def main():
     output_filename = "out.svg"
 
     # Ask the user for the type of overlap to check
-    type = input("Enter the type of overlap to check (I-1, I-2, II-1, II-2): ").strip()
+    type = input("Enter the type of overlap to check (I-1, I-2, II-1, II-2, III-1): ").strip()
 
     # Input number of sides for the polygon
     n = int(input(f"Enter number of sides for the polygon n (n >= 3): "))
@@ -515,33 +515,35 @@ def main():
     else:
         svg_drawer.draw_unfolding([test_poly1, test_poly2])  # Test edge combination generation
 
-    # # Initialize the PolygonIntersection class for edge combination generation
-    # intersec_checker = PolygonIntersection()
+    # Initialize the PolygonIntersection class for edge combination generation
+    intersec_checker = PolygonIntersection()
 
-    # # Generate all edge combinations between polygon X and polygon Y
-    # if type == 'I-1' or type == 'I-2':
-    #     edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c2_vertices)
-    # elif type == 'II-1' or type == 'II-2':
-    #     edge_comb = intersec_checker.generate_edge_combinations(a_vertices, c1_vertices)
-    # else: 
-    #     edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
+    # Generate all edge combinations between polygon X and polygon Y
+    if type == 'I-1' or type == 'I-2':
+        edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c2_vertices)
+    elif type == 'II-1' or type == 'II-2':
+        edge_comb = intersec_checker.generate_edge_combinations(a_vertices, c1_vertices)
+    elif type == 'III-1':
+        edge_comb = intersec_checker.generate_edge_combinations(c1_vertices, c2_vertices)
+    else: 
+        edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
 
-    # # Check if any edge combination intersects
-    # any_intersects = False
+    # Check if any edge combination intersects
+    any_intersects = False
 
-    # print("Checking for overlap...")
+    print("Checking for overlap...")
 
-    # for edge1, edge2 in edge_comb:
-    #     intersects = intersec_checker.edge_intersection(edge1, edge2)
-    #     if intersects:
-    #         any_intersects = True
-    #         break
+    for edge1, edge2 in edge_comb:
+        intersects = intersec_checker.edge_intersection(edge1, edge2)
+        if intersects:
+            any_intersects = True
+            break
 
-    # # Output the result with appropriate messages
-    # if any_intersects:
-    #     print("Overlapping")
-    # else:
-    #     print("Not overlapping")
+    # Output the result with appropriate messages
+    if any_intersects:
+        print("Overlapping")
+    else:
+        print("Not overlapping")
 
 
 ####################
