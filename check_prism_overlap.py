@@ -8,12 +8,12 @@ from sympy import pi, sin, cos, Float
 @detail This script calculates the vertices of polygons (e.g., prism bases) and rectangles symbolically,
         and renders them as an SVG file. It also includes functionality to check for edge intersections
         between polygons.
-@version 1.1.4
+@version 1.1.5
 @date 2024-11-14
 @author Takumi Shiota
 """
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-14"
 
@@ -161,6 +161,27 @@ class Polygon:
             (c1_0_x + strip * sin(th), c1_0_y - strip * cos(th)),  # c1_1
             (c1_0_x + strip * sin(th) + self.h * cos(th), c1_0_y - strip * cos(th) + self.h * sin(th)),  # c1_2
             (c1_0_x + self.h * cos(th), c1_0_y + self.h * sin(th))  # c1_3
+        ]
+        return vertices
+
+    def calculate_c1_vertices_III_3(self, polygon_b1, c1, e1):
+        """
+        @brief Calculates the vertices of polygon C1.
+        @param polygon_b1 List of vertices of Polygon B1.
+        @param c1 Position of rectangle C1.
+        @return List of symbolic (x, y) tuples representing vertices of rectangle C1.
+        """
+        strip = e1
+        th = (2 * pi / self.n) * (c1)
+
+        c1_0_x = polygon_b1[self.n - c1 - 1][0]
+        c1_0_y = polygon_b1[self.n - c1 - 1][1]
+
+        vertices = [
+            (c1_0_x, c1_0_y),  # c1_0
+            (c1_0_x + strip * sin(th), c1_0_y + strip * cos(th)),  # c1_1
+            (c1_0_x + strip * sin(th) + self.h * cos(th), c1_0_y + strip * cos(th) - self.h * sin(th)),  # c1_2
+            (c1_0_x + self.h * cos(th), c1_0_y - self.h * sin(th))  # c1_3
         ]
         return vertices
 
@@ -440,7 +461,7 @@ def main():
     output_filename = "out.svg"
 
     # Ask the user for the type of overlap to check
-    type = input("Enter the type of overlap to check (I-1, I-2, II-1, II-2, III-1, III-2): ").strip()
+    type = input("Enter the type of overlap to check (I-1, I-2, II-1, II-2, III-1, III-2, III-3): ").strip()
 
     # Input number of sides for the polygon
     n = int(input(f"Enter number of sides for the polygon n (n >= 3): "))
@@ -514,6 +535,21 @@ def main():
         elif c1 + a - 1 > c2:
             e1 = (n - a) - c1 + 1
             e2 = c1 -1 + (a - 1) - c2 + 1
+    elif type == 'III-3':
+        c1 = int(input(f"Enter the position of Rectangle C1 (0 < c1 <= {n - a}): "))
+        if c1 <= 0 or c1 > n - a:
+            print(f"Error: c1 <= 0 or c1 > {n - a}.")
+            return
+        c2 = int(input(f"Enter the position of Rectangle C2 ({a} < c2 < {n} (i) {c1 + a - 1} < c2 (ii) {c1 + a - 1} > c2): "))
+        if c2 <= a or c2 >= n or c2 == c1 + a - 1:
+            print(f"Error: c2 <= {a} or c2 >= {n} or c2 == {c1 + a - 1}.")
+            return
+        if c1 + a - 1 < c2:
+            e1 = c1 - 1 + 1
+            e2 = c2 - (c1 + 1 + (a - 1)) + 1
+        elif c1 + a - 1 > c2:
+            e2 = c2 - a + 1
+            e1 = c1 - (e2 + 1) + 1
         
 
     # Create each polygon's vertices
@@ -539,6 +575,10 @@ def main():
         b2_vertices = polygon.calculate_b2_vertices(a_vertices)  # Vertices of polygon B2
         c1_vertices = polygon.calculate_c1_vertices_III_1(b1_vertices, c1, e1)
         c2_vertices = polygon.calculate_c2_vertices_III_2(b2_vertices, c2, e2)
+    elif type == 'III-3':
+        b2_vertices = polygon.calculate_b2_vertices(a_vertices)  # Vertices of polygon B2
+        c1_vertices = polygon.calculate_c1_vertices_III_3(b1_vertices, c1, e1)
+        c2_vertices = polygon.calculate_c2_vertices_III_1(b2_vertices, c2, e2)
     else:
         # Polygons for intersection testing (uncomment to use)
         test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
@@ -554,7 +594,7 @@ def main():
         svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c2_vertices])
     elif type == 'II-1' or type == 'II-2':
         svg_drawer.draw_unfolding([b1_vertices, a_vertices, c1_vertices])
-    elif type == 'III-1' or type == 'III-2':
+    elif type == 'III-1' or type == 'III-2' or type == 'III-3':
         svg_drawer.draw_unfolding([c1_vertices, b1_vertices, a_vertices, b2_vertices, c2_vertices])        
     else:
         svg_drawer.draw_unfolding([test_poly1, test_poly2])  # Test edge combination generation
@@ -567,7 +607,7 @@ def main():
         edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c2_vertices)
     elif type == 'II-1' or type == 'II-2':
         edge_comb = intersec_checker.generate_edge_combinations(a_vertices, c1_vertices)
-    elif type == 'III-1' or type == 'III-2':
+    elif type == 'III-1' or type == 'III-2' or type == 'III-3':
         edge_comb = intersec_checker.generate_edge_combinations(c1_vertices, c2_vertices)
     else: 
         edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
