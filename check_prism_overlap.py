@@ -8,14 +8,14 @@ from sympy import pi, sin, cos, Float
 @detail This script calculates the vertices of polygons (e.g., prism bases) and rectangles symbolically,
         and renders them as an SVG file. It also includes functionality to check for edge intersections
         between polygons.
-@version 1.1.2
-@date 2024-11-12
+@version 1.1.3
+@date 2024-11-13
 @author Takumi Shiota
 """
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 __author__ = "Takumi Shiota"
-__date__ = "2024-11-12"
+__date__ = "2024-11-13"
 
 # SVG templates
 SVG_HEADER_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
@@ -33,119 +33,113 @@ class Polygon:
     @brief Represents a polygon and provides methods to calculate its vertices and related shapes.
     """
 
-    def __init__(self, n, height, a_height, side_length=1):
+    def __init__(self, n, h, a):
         """
-        @brief Initializes a polygon and related rectangle parameters.
-        @param n Number of sides of the polygon (must be >= 3).
-        @param height Height of the prism (used for rectangle width).
-        @param a_height Height of Rectangle A.
-        @param side_length Length of each side of the polygon (default: 1).
-        @exception ValueError Raised if n < 3.
+        @brief Initializes prism's edge unfolding parameter.
+        @param n The number of sides for the polygon.
+        @param h The height of the prism.
+        @param a The length of one side of Rectangle A.
         """
-        if n < 3:
-            raise ValueError("A polygon must have at least 3 sides.")
         self.n = n
-        self.side_length = side_length
-        self.height = height
-        self.a_height = a_height
+        self.h = h
+        self.a = a
 
-    def calculate_b1_vertices(self, cx, cy):
+    def calculate_b1_vertices(self):
         """
-        @brief Calculates the vertices of a regular polygon (base of prism).
-        @param cx X-coordinate of the polygon's center.
-        @param cy Y-coordinate of the polygon's center.
-        @return List of symbolic (x, y) tuples representing the vertices.
+        @brief Calculates the vertices of polygon B1.
+        @return List of symbolic (x, y) tuples representing vertices of B1.
         """
         angle_step = 2 * pi / self.n
-        radius = self.side_length / (2 * sin(pi / self.n))
+        radius = 1 / (2 * sin(pi / self.n))
         offset_angle = angle_step / 2
 
+        b1_0_x = Float(0)
+        b1_0_y = Float(0)
+
         vertices = [
-            (cx + radius * cos(offset_angle + i * angle_step),
-             cy + radius * sin(offset_angle + i * angle_step))
+            (b1_0_x + radius * cos(offset_angle + i * angle_step),
+             b1_0_y + radius * sin(offset_angle + i * angle_step))
             for i in range(self.n)
         ]
         return vertices
 
-    def calculate_a_vertices(self, start):
+    def calculate_a_vertices(self, b1_vertices):
         """
-        @brief Calculates the vertices of Rectangle A.
-        @param start Starting vertex (x, y) of the rectangle.
-        @return List of (x, y) tuples representing the vertices of the rectangle.
+        @brief Calculates the vertices of rectangle A.
+        @param b1_vertices List of vertices of polygon B1.
+        @return List of symbolic (x, y) tuples representing vertices of rectangle A.
         """
-        width = self.height  # Rectangle width (based on prism height)
-        height = self.a_height  # Rectangle height (user-defined)
+        a0_x = b1_vertices[self.n-1][0]
+        a0_y = b1_vertices[self.n-1][1]
+
         vertices = [
-            start,
-            (start[0] + width, start[1]),
-            (start[0] + width, start[1] + height),
-            (start[0], start[1] + height)
+            (a0_x, a0_y),  # a0
+            (a0_x + self.h, a0_y),  # a1
+            (a0_x + self.h, a0_y + self.a),  # a2
+            (a0_x, a0_y + self.a)  # a3
         ]
         return vertices
     
-    def calculate_b2_vertices(self, cx, cy):
+    def calculate_b2_vertices(self, a_vertices):
         """
-        @brief Calculates the vertices of a regular polygon (top base of the prism).
-        @param cx X-coordinate of the center of the polygon.
-        @param cy Y-coordinate of the center of the polygon.
-        @return List of symbolic (x, y) tuples representing the vertices of the polygon.
+        @brief Calculates the vertices of polygon B2.
+        @param a_vertices List of vertices of rectangle A.
+        @return List of symbolic (x, y) tuples representing vertices of polygon B2.
         """
         angle_step = 2 * pi / self.n
-        radius = self.side_length / (2 * sin(pi / self.n))
+        radius = 1 / (2 * sin(pi / self.n))
 
-        cx += radius * cos(angle_step / 2)
-        cy -= 0.5
+        b2_0_x = a_vertices[2][0] + radius * cos(angle_step / 2)
+        b2_0_y = a_vertices[2][1] - radius * sin(angle_step / 2)
 
         offset_angle = pi + angle_step / 2
 
         vertices = [
-            (cx + radius * cos(offset_angle + i * angle_step),
-             cy + radius * sin(offset_angle + i * angle_step))
+            (b2_0_x + radius * cos(offset_angle + i * angle_step),
+             b2_0_y + radius * sin(offset_angle + i * angle_step))
             for i in range(self.n)
         ]
         return vertices
     
-    def calculate_c1_vertices_v1(self, polygon_b2, c1_pos):
+    def calculate_c1_vertices_I_1(self, polygon_b2, c1):
         """
-        @brief Calculates the vertices of Rectangle C1 (version 1).
-        @param polygon_b2 List of vertices of Polygon B2 (top base of the prism).
-        @param c1_pos Position index for Rectangle C1.
-        @return List of (x, y) tuples representing the vertices of the rectangle.
+        @brief Calculates the vertices of polygon C1.
+        @param polygon_b2 List of vertices of Polygon B2.
+        @param c1 Position of Rectangle C1.
+        @return List of symbolic (x, y) tuples representing vertices of rectangle C1.
         """
-        width = c1_pos + 1 - self.a_height
-        height = self.height
-        angle = ((2 * pi / self.n) * c1_pos) - pi
+        strip = (c1 - self.a) + 1
+        th = ((2 * pi / self.n) * c1)
 
-        cx = polygon_b2[c1_pos][0]
-        cy = polygon_b2[c1_pos][1]
+        c1_0_x = polygon_b2[c1][0]
+        c1_0_y = polygon_b2[c1][1]
 
         vertices = [
-            (cx, cy),
-            (cx + width * sin(angle), cy - width * cos(angle)),
-            (cx + width * sin(angle) + height * cos(angle), cy - width * cos(angle) + height * sin(angle)),
-            (cx + height * cos(angle), cy + height * sin(angle))
+            (c1_0_x, c1_0_y),  # c1_0
+            (c1_0_x - strip * cos(th), c1_0_y + strip * sin(th)),  # c1_1
+            (c1_0_x - strip * cos(th) - self.h * sin(th), c1_0_y + strip * sin(th) - self.h * cos(th)),  # c1_2
+            (c1_0_x - self.h * sin(th), c1_0_y - self.h * cos(th))  # c1_3
         ]
         return vertices
-
-    def calculate_c1_vertices_v2(self, polygon_b2, c1_pos):
+    
+    def calculate_c1_vertices_I_2(self, polygon_b2, c1):
         """
-        @brief Calculates the vertices of Rectangle C1 (version 2).
-        @param polygon_b2 List of vertices of Polygon B2 (top base of the prism).
-        @param c1_pos Position index for Rectangle C1.
-        @return List of (x, y) tuples representing the vertices of the rectangle.
+        @brief Calculates the vertices of polygon C1.
+        @param polygon_b2 List of vertices of Polygon B2.
+        @param c1 Position of Rectangle C1.
+        @return List of symbolic (x, y) tuples representing vertices of rectangle C1.
         """
-        width = self.n - c1_pos
-        height = self.height
-        angle = ((2 * pi / self.n) * (self.n - c1_pos)) - pi / 2
+        strip = ((self.n - 1) - c1) + 1
+        th = (2 * pi / self.n) * (self.n - c1)
 
-        cx = polygon_b2[c1_pos - 1][0]
-        cy = polygon_b2[c1_pos - 1][1]
+        c1_0_x = polygon_b2[c1 - 1][0]
+        c1_0_y = polygon_b2[c1 - 1][1]
 
         vertices = [
-            (cx, cy),
-            (cx - width * cos(angle), cy + width * sin(angle)),
-            (cx - width * cos(angle) + height * sin(angle), cy + width * sin(angle) + height * cos(angle)),
-            (cx + height * sin(angle), cy + height * cos(angle))
+            (c1_0_x, c1_0_y),  # c1_0
+            (c1_0_x - strip * sin(th), c1_0_y - strip * cos(th)),  # c1_1
+            (c1_0_x - strip * sin(th) - self.h * cos(th), c1_0_y - strip * cos(th) + self.h * sin(th)),  # c1_2
+            (c1_0_x - self.h * cos(th), c1_0_y + self.h * sin(th))  # c1_3
         ]
         return vertices
 
@@ -340,57 +334,68 @@ def main():
     """
     output_filename = "out.svg"
 
+    # Ask the user for the type of overlap to check
+    type = input("Enter the type of overlap to check (I-1, I-2): ").strip()
+
     # Input number of sides for the polygon
-    n = int(input(f"Enter the number of sides for the polygon (n >= 3): "))
+    n = int(input(f"Enter number of sides for the polygon n (n >= 3): "))
     if n < 3:
-        print(f"Error: A polygon must have at least 3 sides.")
+        print(f"Error: n < 3.")
         return
 
     # Input the height of the prism
-    height = float(input(f"Enter the height of the prism (e.g., 1.5): "))
-    if height <= 0:
-        print(f"Error: The height of the prism must be greater than 0.")
+    h = float(input(f"Enter the height of the prism h (h > 0): "))
+    if h <= 0:
+        print(f"Error: h <= 0.")
         return
 
-    # Input the height of Rectangle A
-    a_height = int(input(f"Enter the height of Rectangle A (n >= a_height): "))
-    if a_height > n:
-        print(f"Error: Height of Rectangle A must not exceed {n}.")
+    # Input the length of one side of Rectangle A
+    a = int(input(f"Enter the length of one side of Rectangle A ({n} > a): "))
+    if a > n:
+        print(f"Error: a <= {n}.")
         return
 
     # Input the position of Rectangle C1
-    c1_pos = int(input(f"Enter the position of Rectangle C1 (c1_pos > a_height): "))
-    if c1_pos <= a_height:
-        print(f"Error: Position of Rectangle C1 must be greater than {a_height}.")
+    c1 = int(input(f"Enter the position of Rectangle C1 ({a} < c1 < {n}): "))
+    if c1 <= a or c1 >= n:
+        print(f"Error: c1 <= {a} or c1 >= {n}.")
         return
 
-    # Create polygon and calculate vertices
-    polygon = Polygon(n, height, a_height)
-    b1_vertices = polygon.calculate_b1_vertices(cx=0, cy=0)  # Vertices of Polygon B1 (base of the prism)
-    a_vertices = polygon.calculate_a_vertices(start=b1_vertices[n-1])  # Vertices of Rectangle A
-    b2_vertices = polygon.calculate_b2_vertices(cx=a_vertices[2][0], cy=a_vertices[2][1])  # Vertices of Polygon B2 (top base of the prism)
-    c1_vertices = polygon.calculate_c1_vertices_v1(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-1)
-    # c1_vertices = polygon.calculate_c1_vertices_v2(polygon_b2=b2_vertices, c1_pos=c1_pos)  # Vertices of Rectangle C1 (I-2)
+    # Create each polygon's vertices
+    polygon = Polygon(n, h, a)
+    b1_vertices = polygon.calculate_b1_vertices()  # Vertices of polygon B1
+    a_vertices = polygon.calculate_a_vertices(b1_vertices)  # Vertices of rectangle A
 
-    # Test polygons for intersection testing (uncomment to use)
-    # test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
-    # test_poly2 = [(Float(1), Float(1)), (Float(3), Float(1)), (Float(3), Float(3)), (Float(1), Float(3))]
-    # test_poly2 = [(Float(2), Float(0)), (Float(4), Float(0)), (Float(4), Float(2)), (Float(2), Float(2))]
-    # test_poly2 = [(Float(2), Float(2)), (Float(4), Float(2)), (Float(4), Float(4)), (Float(2), Float(4))]
-    # test_poly2 = [(Float(2), Float(1)), (Float(3), Float(0)), (Float(4), Float(1)), (Float(3), Float(2))]
-    # test_poly2 = [(Float(3), Float(1)), (Float(5), Float(1)), (Float(5), Float(3)), (Float(3), Float(3))]
+    if type == 'I-1':
+        b2_vertices = polygon.calculate_b2_vertices(a_vertices)  # Vertices of polygon B2
+        c1_vertices = polygon.calculate_c1_vertices_I_1(b2_vertices, c1)  # Vertices of rectangle C1
+    elif type == 'I-2':
+        b2_vertices = polygon.calculate_b2_vertices(a_vertices)  # Vertices of polygon B2
+        c1_vertices = polygon.calculate_c1_vertices_I_2(b2_vertices, c1)  # Vertices of rectangle C1
+    else:
+        # Polygons for intersection testing (uncomment to use)
+        test_poly1 = [(Float(0), Float(0)), (Float(2), Float(0)), (Float(2), Float(2)), (Float(0), Float(2))]
+        test_poly2 = [(Float(1), Float(1)), (Float(3), Float(1)), (Float(3), Float(3)), (Float(1), Float(3))]
+        # test_poly2 = [(Float(2), Float(0)), (Float(4), Float(0)), (Float(4), Float(2)), (Float(2), Float(2))]
+        # test_poly2 = [(Float(2), Float(2)), (Float(4), Float(2)), (Float(4), Float(4)), (Float(2), Float(4))]
+        # test_poly2 = [(Float(2), Float(1)), (Float(3), Float(0)), (Float(4), Float(1)), (Float(3), Float(2))]
+        # test_poly2 = [(Float(3), Float(1)), (Float(5), Float(1)), (Float(5), Float(3)), (Float(3), Float(3))]
 
     # Render SVG with the calculated shapes
     svg_drawer = SvgDrawer(output_filename)
-    svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
-    # svg_drawer.draw_unfolding([test_poly1, test_poly2])  # Test edge combination generation
+    if type == 'I-1' or type == 'I-2':
+        svg_drawer.draw_unfolding([b1_vertices, a_vertices, b2_vertices, c1_vertices])
+    else:
+        svg_drawer.draw_unfolding([test_poly1, test_poly2])  # Test edge combination generation
 
     # Initialize the PolygonIntersection class for edge combination generation
     intersec_checker = PolygonIntersection()
 
-    # Generate all edge combinations between Polygon B1 and Rectangle C1
-    edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c1_vertices)
-    # edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
+    # Generate all edge combinations between polygon X and polygon Y
+    if type == 'I-1' or type == 'I-2':
+        edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c1_vertices)
+    else: 
+        edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
 
     # Check if any edge combination intersects
     any_intersects = False
@@ -403,9 +408,9 @@ def main():
 
     # Output the result with appropriate messages
     if any_intersects:
-        print("Overlapping partial edge unfolding")
+        print("Overlapping")
     else:
-        print("Non-overlapping partial edge unfolding")
+        print("Not overlapping")
 
 
 ####################
