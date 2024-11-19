@@ -8,12 +8,12 @@ from sympy import pi, sin, cos, Float
 @detail This script calculates the vertices of polygons (e.g., prism bases) and rectangles symbolically,
         and renders them as an SVG file. It also includes functionality to check for edge intersections
         between polygons.
-@version 1.2.0
+@version 1.2.1
 @date 2024-11-19
 @author Takumi Shiota
 """
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 __author__ = "Takumi Shiota"
 __date__ = "2024-11-19"
 
@@ -193,16 +193,16 @@ class Polygon:
         @return List of symbolic (x, y) tuples representing vertices of rectangle C2.
         """
         strip = (c2 - self.a) + 1
-        th = (2 * pi / self.n) * c2
+        th = pi - ((2 * pi / self.n) * c2)
 
         c2_0_x = polygon_b2[c2][0]
         c2_0_y = polygon_b2[c2][1]
 
         vertices = [
             (c2_0_x, c2_0_y),  # c2_0
-            (c2_0_x - strip * cos(th), c2_0_y + strip * sin(th)),  # c2_1
-            (c2_0_x - strip * cos(th) - self.h * sin(th), c2_0_y + strip * sin(th) - self.h * cos(th)),  # c2_2
-            (c2_0_x - self.h * sin(th), c2_0_y - self.h * cos(th))  # c2_3
+            (c2_0_x - strip * sin(th), c2_0_y - strip * cos(th)),  # c2_1
+            (c2_0_x - strip * sin(th) + self.h * cos(th), c2_0_y - strip * cos(th) - self.h * sin(th)),  # c2_2
+            (c2_0_x + self.h * cos(th), c2_0_y - self.h * sin(th))  # c2_3
         ]
         return vertices
     
