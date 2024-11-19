@@ -8,14 +8,14 @@ from sympy import pi, sin, cos, Float
 @detail This script calculates the vertices of polygons (e.g., prism bases) and rectangles symbolically,
         and renders them as an SVG file. It also includes functionality to check for edge intersections
         between polygons.
-@version 1.1.6
-@date 2024-11-14
+@version 1.2.0
+@date 2024-11-19
 @author Takumi Shiota
 """
 
-__version__ = "1.1.6"
+__version__ = "1.2.0"
 __author__ = "Takumi Shiota"
-__date__ = "2024-11-14"
+__date__ = "2024-11-19"
 
 # SVG templates
 SVG_HEADER_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
@@ -404,7 +404,7 @@ class PolygonIntersection:
         return True
     
 
-    def edge_intersection(self, edge1, edge2, evalf_precision=100):
+    def edge_intersection(self, edge1, edge2):
         """
         @brief Checks if two edges intersect using cross products and checks for overlaps.
         @param edge1 A tuple of two points ((x1, y1), (x2, y2)) representing the first edge.
@@ -416,10 +416,10 @@ class PolygonIntersection:
         (x3, y3), (x4, y4) = edge2
 
         # Calculate determinants for the four cases
-        d1 = ((x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1)).evalf(evalf_precision)
-        d2 = ((x4 - x1) * (y2 - y1) - (y4 - y1) * (x2 - x1)).evalf(evalf_precision)
-        d3 = ((x1 - x3) * (y4 - y3) - (y1 - y3) * (x4 - x3)).evalf(evalf_precision)
-        d4 = ((x2 - x3) * (y4 - y3) - (y2 - y3) * (x4 - x3)).evalf(evalf_precision)
+        d1 = ((x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1)) #.evalf(evalf_precision)
+        d2 = ((x4 - x1) * (y2 - y1) - (y4 - y1) * (x2 - x1)) #.evalf(evalf_precision)
+        d3 = ((x1 - x3) * (y4 - y3) - (y1 - y3) * (x4 - x3)) #.evalf(evalf_precision)
+        d4 = ((x2 - x3) * (y4 - y3) - (y2 - y3) * (x4 - x3)) #.evalf(evalf_precision)
 
         # If the edges are collinear (all cross products are zero),
         # check if their bounding boxes overlap to determine if the edges overlap.
@@ -470,7 +470,7 @@ def main():
         return
 
     # Input the height of the prism
-    h = float(input(f"Enter the height of the prism h (h > 0): "))
+    h = Float(input(f"Enter the height of the prism h (h > 0): "), 100)
     if h <= 0:
         print(f"Error: h <= 0.")
         return
@@ -625,13 +625,25 @@ def main():
 
     # Generate all edge combinations between polygon X and polygon Y
     if type == 'I-1' or type == 'I-2':
-        edge_comb = intersec_checker.generate_edge_combinations(b1_vertices, c2_vertices)
+        edge_comb = intersec_checker.generate_edge_combinations(
+            [(x.evalf(100), y.evalf(100)) for x, y in b1_vertices],
+            [(x.evalf(100), y.evalf(100)) for x, y in c2_vertices]
+        )
     elif type == 'II-1' or type == 'II-2':
-        edge_comb = intersec_checker.generate_edge_combinations(a_vertices, c1_vertices)
-    elif type == 'III-1' or type == 'III-2' or type == 'III-3' or type == 'III-4':
-        edge_comb = intersec_checker.generate_edge_combinations(c1_vertices, c2_vertices)
-    else: 
-        edge_comb = intersec_checker.generate_edge_combinations(test_poly1, test_poly2)
+        edge_comb = intersec_checker.generate_edge_combinations(
+            [(x.evalf(100), y.evalf(100)) for x, y in a_vertices],
+            [(x.evalf(100), y.evalf(100)) for x, y in c1_vertices]
+        )
+    elif type in {'III-1', 'III-2', 'III-3', 'III-4'}:
+        edge_comb = intersec_checker.generate_edge_combinations(
+            [(x.evalf(100), y.evalf(100)) for x, y in c1_vertices],
+            [(x.evalf(100), y.evalf(100)) for x, y in c2_vertices]
+        )
+    else:
+        edge_comb = intersec_checker.generate_edge_combinations(
+            [(x.evalf(100), y.evalf(100)) for x, y in test_poly1],
+            [(x.evalf(100), y.evalf(100)) for x, y in test_poly2]
+        )
 
     # Check if any edge combination intersects
     any_intersects = False
